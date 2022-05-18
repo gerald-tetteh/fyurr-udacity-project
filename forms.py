@@ -1,7 +1,42 @@
 from datetime import datetime
+import enum
 from flask_wtf import FlaskForm as Form
 from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField
-from wtforms.validators import DataRequired, AnyOf, URL
+from wtforms.validators import DataRequired, AnyOf, Length, URL, ValidationError
+
+
+class Genres(enum.Enum):
+    ALTERNATIVE = 'Alternative'
+    CLASSICAL = 'Classical'
+    COUNTRY = 'Country'
+    ELECTRONIC = 'Electronic'
+    FOLK = 'Folk'
+    FUNK = 'Funk'
+    HIP_HOP = 'Hip-Hop'
+    HEAVY_METAL = 'Heavy Metal'
+    INSTRUMENTAL = 'Instrumental'
+    JAZZ = 'Jazz'
+    MUSICAL_THEATRE = 'Musical Theatre'
+    POP = 'Pop'
+    PUNK = 'Punk'
+    R_N_B = 'R&B'
+    REGGAE = 'Reggae'
+    ROCK_N_ROLL = 'Rock n Roll'
+    SOUL = 'Soul'
+    OTHER = 'Other'
+    BLUES = 'Blues',
+
+    def choice_tuple(self) -> tuple:
+        if(self.name == "R_N_B"):
+            return ("R&B", self.value)
+        elif(self.name == "ROCK_N_ROLL"):
+            return ("Rock n Roll", self.value)
+        elif(self.name == "HIP_HOP"):
+            return ("Hip-Hop", self.value)
+        elif("_" in self.name):
+            return (" ".join(self.name.split("_")).title(), self.value)
+        else:
+            return (self.name.title(), self.value)
 
 
 class ShowForm(Form):
@@ -85,35 +120,14 @@ class VenueForm(Form):
         'address', validators=[DataRequired()]
     )
     phone = StringField(
-        'phone'
+        'phone', validators=[DataRequired(), Length(min=10, max=10)]
     )
     image_link = StringField(
         'image_link'
     )
     genres = SelectMultipleField(
-        # TODO implement enum restriction
         'genres', validators=[DataRequired()],
-        choices=[
-            ('Alternative', 'Alternative'),
-            ('Blues', 'Blues'),
-            ('Classical', 'Classical'),
-            ('Country', 'Country'),
-            ('Electronic', 'Electronic'),
-            ('Folk', 'Folk'),
-            ('Funk', 'Funk'),
-            ('Hip-Hop', 'Hip-Hop'),
-            ('Heavy Metal', 'Heavy Metal'),
-            ('Instrumental', 'Instrumental'),
-            ('Jazz', 'Jazz'),
-            ('Musical Theatre', 'Musical Theatre'),
-            ('Pop', 'Pop'),
-            ('Punk', 'Punk'),
-            ('R&B', 'R&B'),
-            ('Reggae', 'Reggae'),
-            ('Rock n Roll', 'Rock n Roll'),
-            ('Soul', 'Soul'),
-            ('Other', 'Other'),
-        ]
+        choices=[choice.choice_tuple() for choice in Genres],
     )
     facebook_link = StringField(
         'facebook_link', validators=[URL()]
@@ -127,6 +141,12 @@ class VenueForm(Form):
     seeking_description = StringField(
         'seeking_description'
     )
+
+    def validate_genres(self, genres):
+        choices = [choice.choice_tuple()[0] for choice in Genres]
+        for genre in genres.data:
+            if genre not in choices:
+                raise ValidationError("Genre is a not a valid choice")
 
 
 class ArtistForm(Form):
@@ -193,38 +213,16 @@ class ArtistForm(Form):
         ]
     )
     phone = StringField(
-        # TODO implement validation logic for state
-        'phone'
+        'phone', validators=[DataRequired(), Length(min=10, max=10)]
     )
     image_link = StringField(
         'image_link'
     )
     genres = SelectMultipleField(
         'genres', validators=[DataRequired()],
-        choices=[
-            ('Alternative', 'Alternative'),
-            ('Blues', 'Blues'),
-            ('Classical', 'Classical'),
-            ('Country', 'Country'),
-            ('Electronic', 'Electronic'),
-            ('Folk', 'Folk'),
-            ('Funk', 'Funk'),
-            ('Hip-Hop', 'Hip-Hop'),
-            ('Heavy Metal', 'Heavy Metal'),
-            ('Instrumental', 'Instrumental'),
-            ('Jazz', 'Jazz'),
-            ('Musical Theatre', 'Musical Theatre'),
-            ('Pop', 'Pop'),
-            ('Punk', 'Punk'),
-            ('R&B', 'R&B'),
-            ('Reggae', 'Reggae'),
-            ('Rock n Roll', 'Rock n Roll'),
-            ('Soul', 'Soul'),
-            ('Other', 'Other'),
-        ]
+        choices=[choice.choice_tuple() for choice in Genres]
     )
     facebook_link = StringField(
-        # TODO implement enum restriction
         'facebook_link', validators=[URL()]
     )
 
@@ -237,3 +235,9 @@ class ArtistForm(Form):
     seeking_description = StringField(
         'seeking_description'
     )
+
+    def validate_genres(self, genres):
+        choices = [choice.choice_tuple()[0] for choice in Genres]
+        for genre in genres.data:
+            if genre not in choices:
+                raise ValidationError("Genre is a not a valid choice")
