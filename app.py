@@ -2,16 +2,15 @@
 # Imports
 #----------------------------------------------------------------------------#
 
-import json
 import dateutil.parser
 import babel
-from flask import Flask, render_template, request, Response, flash, redirect, url_for
+from flask import Flask, render_template, request, flash, redirect, url_for, abort
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 import logging
 from logging import Formatter, FileHandler
-from flask_wtf import Form
+import sys
 from forms import *
 #----------------------------------------------------------------------------#
 # App Config.
@@ -44,7 +43,7 @@ class Venue(db.Model):
     website = db.Column(db.String())
     seeking_talent = db.Column(db.Boolean, nullable=False)
     seeking_description = db.Column(db.String())
-    shows = db.relationship("Show", backref="shows", lazy=True)
+    shows = db.relationship("Show", backref="venue_shows", lazy=True)
 
 
 class Artist(db.Model):
@@ -61,7 +60,7 @@ class Artist(db.Model):
     website = db.Column(db.String())
     seeking_venue = db.Column(db.Boolean, nullable=False)
     seeking_description = db.Column(db.String())
-    shows = db.relationship("Artist", backref="shows", lazy=True)
+    shows = db.relationship("Show", backref="artist_shows", lazy=True)
 
 
 class Show(db.Model):
@@ -245,12 +244,39 @@ def create_venue_form():
 def create_venue_submission():
     # TODO: insert form data as a new Venue record in the db, instead
     # TODO: modify data to be the data object returned from db insertion
-
-    # on successful db insert, flash success
-    flash('Venue ' + request.form['name'] + ' was successfully listed!')
-    # TODO: on unsuccessful db insert, flash an error instead.
-    # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
-    # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
+    form = VenueForm()
+    error = False
+    if form.validate_on_submit():
+        try:
+            venue = Venue(
+                name=form.name.data,
+                city=form.city.data,
+                state=form.state.data,
+                address=form.address.data,
+                phone=form.phone.data,
+                image_link=form.image_link.data,
+                genres=",".join(form.genres.data),
+                facebook_link=form.facebook_link.data,
+                website=form.website_link.data,
+                seeking_talent=form.seeking_talent.data,
+                seeking_description=form.seeking_description.data
+            )
+            db.session.add(venue)
+            db.session.commit()
+            flash('Venue ' + venue.name + ' was successfully listed!')
+        except:
+            error = True
+            db.session.rollback()
+            flash('An error occurred. Venue ' +
+                  form.name.data + ' could not be listed.')
+            print(sys.exc_info())
+        finally:
+            db.session.close()
+        if error:
+            abort(500)
+    else:
+        flash("Some fields failed validation")
+        return render_template('forms/new_venue.html', form=form)
     return render_template('pages/home.html')
 
 
