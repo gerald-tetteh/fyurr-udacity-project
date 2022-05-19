@@ -9,6 +9,7 @@ from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 import logging
+from datetime import datetime
 from logging import Formatter, FileHandler
 import sys
 from forms import *
@@ -103,29 +104,47 @@ def index():
 
 @app.route('/venues')
 def venues():
+    data = []
+    locations = Venue.query.with_entities(
+        Venue.city, Venue.state).group_by(Venue.city, Venue.state).all()
+    for location in locations:
+        city = location[0]
+        state = location[1]
+        venues = Venue.query\
+            .filter(Venue.city == city, Venue.state == state)\
+            .with_entities(Venue.id, Venue.name, db.func.count(db.case((Show.start_time > datetime.now(), 1))).label("num_upcoming_shows"))\
+            .outerjoin(Show)\
+            .group_by(Venue.id).all()
+        venue_objects = [venue._asdict() for venue in venues]
+        data_object = {
+            "city": city,
+            "state": state,
+            "venues": venue_objects
+        }
+        data.append(data_object)
     # TODO: replace with real venues data.
     #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
-    data = [{
-        "city": "San Francisco",
-        "state": "CA",
-        "venues": [{
-            "id": 1,
-            "name": "The Musical Hop",
-            "num_upcoming_shows": 0,
-        }, {
-            "id": 3,
-            "name": "Park Square Live Music & Coffee",
-            "num_upcoming_shows": 1,
-        }]
-    }, {
-        "city": "New York",
-        "state": "NY",
-        "venues": [{
-            "id": 2,
-            "name": "The Dueling Pianos Bar",
-            "num_upcoming_shows": 0,
-        }]
-    }]
+    # data = [{
+    #     "city": "San Francisco",
+    #     "state": "CA",
+    #     "venues": [{
+    #         "id": 1,
+    #         "name": "The Musical Hop",
+    #         "num_upcoming_shows": 0,
+    #     }, {
+    #         "id": 3,
+    #         "name": "Park Square Live Music & Coffee",
+    #         "num_upcoming_shows": 1,
+    #     }]
+    # }, {
+    #     "city": "New York",
+    #     "state": "NY",
+    #     "venues": [{
+    #         "id": 2,
+    #         "name": "The Dueling Pianos Bar",
+    #         "num_upcoming_shows": 0,
+    #     }]
+    # }]
     return render_template('pages/venues.html', areas=data)
 
 
@@ -614,7 +633,7 @@ if not app.debug:
 
 # Default port:
 if __name__ == '__main__':
-    app.run()
+    app.run("0.0.0.0", port=3000)
 
 # Or specify port manually:
 '''
