@@ -215,3 +215,14 @@ h2.monospace {
   margin: 0;
   padding: 0;
 }
+.navbar-nav li a.btn-show,
+.navbar-nav li a.btn-show:link,
+.navbar-nav li a.btn-show:visited,
+.navbar-nav li a.btn-show:hover {
+  background-color: #ffb707;
+  color: black;
+}
+.search-show {
+  width: 70%;
+  margin: auto;
+}

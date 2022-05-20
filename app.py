@@ -6,7 +6,7 @@ import dateutil.parser
 import babel
 from flask import jsonify, render_template, request, flash, redirect, url_for, abort
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from logging import Formatter, FileHandler
 import sys
 from forms import *
@@ -478,6 +478,45 @@ def create_show_submission():
         flash("Some fields failed validation")
         return render_template('forms/new_show.html', form=form)
     return redirect(url_for("index"))
+
+
+@app.route("/shows/search", methods=['GET', 'POST'])
+def search_shows():
+    shows = []
+    date_query = None
+    if(request.method == "POST"):
+        try:
+            search_term = request.form.get("search_term", "")
+            if("/" in search_term):
+                [day, month, year] = [int(string.strip())
+                                      for string in search_term.split("/")]
+                date = datetime(year, month, day)
+                next_date = date + timedelta(days=1)
+                date_query = db.and_(
+                    Show.start_time >= date,
+                    Show.start_time < next_date
+                )
+            shows = Show.query\
+                .with_entities(
+                    Show.artist_id,
+                    Show.venue_id,
+                    Artist.image_link.label("artist_image_link"),
+                    Artist.name.label("artist_name"),
+                    Venue.name.label("venue_name"),
+                    Show.start_time
+                )\
+                .join(Artist)\
+                .join(Venue)\
+                .filter(db.or_(
+                    Artist.name.ilike(f"%{search_term}%"),
+                    Venue.name.ilike(f"%{search_term}%"),
+                    date_query
+                )).all()
+            shows = [show._asdict() for show in shows]
+        except:
+            flash("An error ocurred")
+            abort(500)
+    return render_template("pages/show.html", shows=shows)
 
 
 @app.errorhandler(404)
