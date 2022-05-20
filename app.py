@@ -4,7 +4,7 @@
 
 import dateutil.parser
 import babel
-from flask import render_template, request, flash, redirect, url_for, abort
+from flask import jsonify, render_template, request, flash, redirect, url_for, abort
 import logging
 from datetime import datetime
 from logging import Formatter, FileHandler
@@ -179,14 +179,26 @@ def create_venue_submission():
     return redirect(url_for("index"))
 
 
-@app.route('/venues/<venue_id>', methods=['DELETE'])
+@app.route('/venues/<int:venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
-    # TODO: Complete this endpoint for taking a venue_id, and using
-    # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
-
-    # BONUS CHALLENGE: Implement a button to delete a Venue on a Venue Page, have it so that
-    # clicking that button delete it from the db then redirect the user to the homepage
-    return None
+    error = False
+    try:
+        venue = Venue.query.get(venue_id)
+        if(venue is None):
+            flash(f"Venue does not exist: {venue_id}")
+            abort(404)
+        db.session.delete(venue)
+        db.session.commit()
+        flash(f"Successfully delete venue: {venue_id}")
+    except:
+        error = True
+        db.session.rollback()
+    finally:
+        db.session.close()
+    if error:
+        flash(f"Could not delete venue: {venue_id}")
+        abort(500)
+    return jsonify({"done": True})
 
 #  Artists
 #  ----------------------------------------------------------------
@@ -385,6 +397,28 @@ def create_artist_submission():
         flash("Some fields failed validation")
         return render_template('forms/new_artist.html', form=form)
     return redirect(url_for("index"))
+
+
+@app.route('/artists/<int:artist_id>', methods=['DELETE'])
+def delete_artist(artist_id):
+    error = False
+    try:
+        artist = Artist.query.get(artist_id)
+        if(artist is None):
+            flash(f"Artist does not exist: {artist_id}")
+            abort(404)
+        db.session.delete(artist)
+        db.session.commit()
+        flash(f"Successfully delete artist: {artist_id}")
+    except:
+        error = True
+        db.session.rollback()
+    finally:
+        db.session.close()
+    if error:
+        flash(f"Could not delete artist: {artist_id}")
+        abort(500)
+    return jsonify({"done": True})
 
 
 #  Shows
