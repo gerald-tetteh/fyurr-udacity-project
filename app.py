@@ -105,23 +105,27 @@ def index():
 @app.route('/venues')
 def venues():
     data = []
-    locations = Venue.query.with_entities(
-        Venue.city, Venue.state).group_by(Venue.city, Venue.state).all()
-    for location in locations:
-        city = location[0]
-        state = location[1]
-        venues = Venue.query\
-            .filter(Venue.city == city, Venue.state == state)\
-            .with_entities(Venue.id, Venue.name, db.func.count(db.case((Show.start_time > datetime.now(), 1))).label("num_upcoming_shows"))\
-            .outerjoin(Show)\
-            .group_by(Venue.id).all()
-        venue_objects = [venue._asdict() for venue in venues]
-        data_object = {
-            "city": city,
-            "state": state,
-            "venues": venue_objects
-        }
-        data.append(data_object)
+    try:
+        locations = Venue.query.with_entities(
+            Venue.city, Venue.state).group_by(Venue.city, Venue.state).all()
+        for location in locations:
+            city = location[0]
+            state = location[1]
+            venues = Venue.query\
+                .filter(Venue.city == city, Venue.state == state)\
+                .with_entities(Venue.id, Venue.name, db.func.count(db.case((Show.start_time > datetime.now(), 1))).label("num_upcoming_shows"))\
+                .outerjoin(Show)\
+                .group_by(Venue.id).all()
+            venue_objects = [venue._asdict() for venue in venues]
+            data_object = {
+                "city": city,
+                "state": state,
+                "venues": venue_objects
+            }
+            data.append(data_object)
+    except:
+        flash("An error occurred")
+        abort(500)
     return render_template('pages/venues.html', areas=data)
 
 
@@ -245,9 +249,13 @@ def delete_venue(venue_id):
 
 @app.route('/artists')
 def artists():
-    # TODO: replace with real data returned from querying the database
-    artists = Artist.query.with_entities(Artist.id, Artist.name).all()
-    data = [artist._asdict() for artist in artists]
+    data = []
+    try:
+        artists = Artist.query.with_entities(Artist.id, Artist.name).all()
+        data = [artist._asdict() for artist in artists]
+    except:
+        flash("An error occurred")
+        abort(500)
     return render_template('pages/artists.html', artists=data)
 
 
@@ -455,15 +463,20 @@ def create_artist_submission():
 
 @app.route('/shows')
 def shows():
-    shows = Show.query.with_entities(
-        Show.venue_id,
-        Venue.name.label("venue_name"),
-        Show.artist_id,
-        Artist.name.label("artist_name"),
-        Artist.image_link.label("artist_image_link"),
-        Show.start_time
-    ).join(Artist).join(Venue).all()
-    data = [show._asdict() for show in shows]
+    data = []
+    try:
+        shows = Show.query.with_entities(
+            Show.venue_id,
+            Venue.name.label("venue_name"),
+            Show.artist_id,
+            Artist.name.label("artist_name"),
+            Artist.image_link.label("artist_image_link"),
+            Show.start_time
+        ).join(Artist).join(Venue).all()
+        data = [show._asdict() for show in shows]
+    except:
+        flash("An error occurred")
+        abort(500)
     return render_template('pages/shows.html', shows=data)
 
 
